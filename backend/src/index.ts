@@ -1,16 +1,20 @@
-import { serve } from '@hono/node-server'
-import { Hono } from 'hono'
+import { Hono } from 'hono';
+import { serve } from '@hono/node-server';
+import sheets from './routes/sheets';
+import slides from './routes/slides';
+import sync from './routes/sync';
 
-const app = new Hono()
+const app = new Hono();
 
-app.get('/', (c) => {
-  return c.text('Hello Hono!')
-})
+app.use('*', async (c, next) => {
+    console.log(`[${new Date().toISOString()}] ${c.req.method} ${c.req.url}`);
+    await next();
+});
 
-const port = 3000
-console.log(`Server is running on port ${port}`)
+app.route('/api', sheets);
+app.route('/api', slides);
+app.route('/api', sync);
 
-serve({
-  fetch: app.fetch,
-  port
-})
+app.get('/', (c) => c.text('Hive Theory backend is live!'));
+
+serve(app);
