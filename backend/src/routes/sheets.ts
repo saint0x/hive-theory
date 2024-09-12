@@ -1,13 +1,18 @@
 import { Hono } from 'hono';
-import { sheets_v4 } from 'googleapis';
+import { google, sheets_v4, Auth } from 'googleapis';
 import { getAuthClient } from '../utils/googleAuth';
 
 const sheetsRouter = new Hono();
 
+// Create a function to get the Sheets API client
+async function getSheetsApiClient(): Promise<sheets_v4.Sheets> {
+  const auth = await getAuthClient() as Auth.OAuth2Client;
+  return new sheets_v4.Sheets({ auth });
+}
+
 sheetsRouter.get('/sheets/:spreadsheetId', async (c) => {
   const spreadsheetId = c.req.param('spreadsheetId');
-  const auth = await getAuthClient();
-  const sheetsApi = new sheets_v4.Sheets({ auth });
+  const sheetsApi = await getSheetsApiClient();
 
   try {
     const response = await sheetsApi.spreadsheets.get({
@@ -23,8 +28,7 @@ sheetsRouter.get('/sheets/:spreadsheetId', async (c) => {
 sheetsRouter.get('/sheets/:spreadsheetId/values/:range', async (c) => {
   const spreadsheetId = c.req.param('spreadsheetId');
   const range = c.req.param('range');
-  const auth = await getAuthClient();
-  const sheetsApi = new sheets_v4.Sheets({ auth });
+  const sheetsApi = await getSheetsApiClient();
 
   try {
     const response = await sheetsApi.spreadsheets.values.get({
@@ -42,8 +46,7 @@ sheetsRouter.post('/sheets/:spreadsheetId/values/:range', async (c) => {
   const spreadsheetId = c.req.param('spreadsheetId');
   const range = c.req.param('range');
   const { values } = await c.req.json();
-  const auth = await getAuthClient();
-  const sheetsApi = new sheets_v4.Sheets({ auth });
+  const sheetsApi = await getSheetsApiClient();
 
   try {
     const response = await sheetsApi.spreadsheets.values.update({

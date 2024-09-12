@@ -1,14 +1,24 @@
 import { Hono } from 'hono';
-import { sheets_v4, slides_v1 } from 'googleapis';
+import { google, sheets_v4, slides_v1, Auth } from 'googleapis';
 import { getAuthClient } from '../utils/googleAuth';
 
 const syncRouter = new Hono();
 
+// Create functions to get the API clients
+async function getSheetsApiClient(): Promise<sheets_v4.Sheets> {
+  const auth = await getAuthClient() as Auth.OAuth2Client;
+  return new sheets_v4.Sheets({ auth });
+}
+
+async function getSlidesApiClient(): Promise<slides_v1.Slides> {
+  const auth = await getAuthClient() as Auth.OAuth2Client;
+  return new slides_v1.Slides({ auth });
+}
+
 syncRouter.post('/sync', async (c) => {
   const { spreadsheetId, presentationId, mappings } = await c.req.json();
-  const auth = await getAuthClient();
-  const sheetsApi = new sheets_v4.Sheets({ auth });
-  const slidesApi = new slides_v1.Slides({ auth });
+  const sheetsApi = await getSheetsApiClient();
+  const slidesApi = await getSlidesApiClient();
 
   try {
     const updates: slides_v1.Schema$Request[] = [];
@@ -53,7 +63,7 @@ syncRouter.post('/sync', async (c) => {
               textRange: { type: 'ALL' },
               style: {
                 fontSize: transform.fontSize ? { magnitude: transform.fontSize, unit: 'PT' } : undefined,
-                foregroundColor: transform.color ? { color: transform.color } : undefined,
+                foregroundColor: transform.color ? { opaqueColor: { rgbColor: { red: 0, green: 0, blue: 0 } } } : undefined,
               },
               fields: 'fontSize,foregroundColor',
             },
