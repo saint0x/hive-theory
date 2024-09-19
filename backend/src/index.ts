@@ -1,3 +1,4 @@
+import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { OAuth2Client } from 'google-auth-library';
 import sheetsRouter from './routes/sheets';
@@ -40,6 +41,17 @@ app.get('/health', (c) => c.json({ status: 'OK' }));
 // 404 handler
 app.notFound((c) => {
   return c.json({ error: 'Not Found' }, 404);
+});
+
+// Start the server
+const port = 3000;
+console.log(`Server is starting on port ${port}...`);
+
+serve({
+  fetch: app.fetch,
+  port: port,
+}, (info) => {
+  console.log(`Server started successfully on port ${info.port}`);
 });
 
 export default app;
