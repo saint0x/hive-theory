@@ -1,65 +1,36 @@
 import { Hono } from 'hono';
-import { google, sheets_v4, Auth } from 'googleapis';
-import { getAuthClient } from '../utils/googleAuth';
+import { SheetsController } from '../controllers/sheetsController';
+import { OAuth2Client } from 'google-auth-library';
 
-const sheetsRouter = new Hono();
+// Define the environment type
+type Env = {
+  auth: OAuth2Client;
+};
 
-// Create a function to get the Sheets API client
-async function getSheetsApiClient(): Promise<sheets_v4.Sheets> {
-  const auth = await getAuthClient() as Auth.OAuth2Client;
-  return new sheets_v4.Sheets({ auth });
-}
+const sheetsRouter = new Hono<{ Bindings: Env }>();
 
-sheetsRouter.get('/sheets/:spreadsheetId', async (c) => {
-  const spreadsheetId = c.req.param('spreadsheetId');
-  const sheetsApi = await getSheetsApiClient();
-
-  try {
-    const response = await sheetsApi.spreadsheets.get({
-      spreadsheetId,
-    });
-    return c.json(response.data);
-  } catch (error) {
-    console.error('Error fetching spreadsheet:', error);
-    return c.json({ error: 'Failed to fetch spreadsheet' }, 500);
-  }
+sheetsRouter.get('/spreadsheets', async (c) => {
+  const controller = new SheetsController(c.env.auth);
+  const spreadsheets = await controller.getSpreadsheets();
+  return c.json(spreadsheets);
 });
 
-sheetsRouter.get('/sheets/:spreadsheetId/values/:range', async (c) => {
-  const spreadsheetId = c.req.param('spreadsheetId');
-  const range = c.req.param('range');
-  const sheetsApi = await getSheetsApiClient();
-
-  try {
-    const response = await sheetsApi.spreadsheets.values.get({
-      spreadsheetId,
-      range,
-    });
-    return c.json(response.data);
-  } catch (error) {
-    console.error('Error fetching values:', error);
-    return c.json({ error: 'Failed to fetch values' }, 500);
-  }
+sheetsRouter.get('/spreadsheets/:id', async (c) => {
+  const controller = new SheetsController(c.env.auth);
+  const { id } = c.req.param();
+  const metadata = await controller.getSpreadsheetMetadata(id);
+  return c.json(metadata);
 });
 
-sheetsRouter.post('/sheets/:spreadsheetId/values/:range', async (c) => {
-  const spreadsheetId = c.req.param('spreadsheetId');
-  const range = c.req.param('range');
-  const { values } = await c.req.json();
-  const sheetsApi = await getSheetsApiClient();
-
-  try {
-    const response = await sheetsApi.spreadsheets.values.update({
-      spreadsheetId,
-      range,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: { values },
-    });
-    return c.json(response.data);
-  } catch (error) {
-    console.error('Error updating values:', error);
-    return c.json({ error: 'Failed to update values' }, 500);
+sheetsRouter.get('/spreadsheets/:id/values', async (c) => {
+  const controller = new SheetsController(c.env.auth);
+  const { id } = c.req.param();
+  const range = c.req.query('range');
+  if (!range) {
+    return c.json({ error: 'Range parameter is required' }, 400);
   }
+  const values = await controller.getSpreadsheetValues(id, range);
+  return c.json(values);
 });
 
 export default sheetsRouter;
