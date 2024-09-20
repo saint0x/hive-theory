@@ -18,9 +18,15 @@ export default function Home() {
   const [user, setUser] = useState<UserProfile | null>(null)
 
   useEffect(() => {
+    console.log('Home component mounted')
+    console.log('NEXT_PUBLIC_GOOGLE_CLIENT_ID:', process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
+    console.log('NEXT_PUBLIC_GOOGLE_REDIRECT_URI:', process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI)
+
     const checkAuthStatus = async () => {
+      console.log('Checking auth status')
       const token = localStorage.getItem('googleToken')
       if (token) {
+        console.log('Token found in localStorage')
         try {
           const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
             headers: {
@@ -28,6 +34,7 @@ export default function Home() {
             }
           })
           if (response.ok) {
+            console.log('User info fetched successfully')
             const data = await response.json()
             setUser({
               id: data.sub,
@@ -37,12 +44,14 @@ export default function Home() {
             })
             setIsAuthenticated(true)
           } else {
-            // Token is invalid or expired
+            console.log('Token is invalid or expired')
             localStorage.removeItem('googleToken')
           }
         } catch (error) {
           console.error('Error checking auth status:', error)
         }
+      } else {
+        console.log('No token found in localStorage')
       }
     }
 
@@ -51,9 +60,11 @@ export default function Home() {
 
   useEffect(() => {
     const handleAuthCallback = async () => {
+      console.log('Handling auth callback')
       const urlParams = new URLSearchParams(window.location.search)
       const code = urlParams.get('code')
       if (code) {
+        console.log('Code found in URL params')
         try {
           // Exchange code for token (this should be done on your backend)
           const response = await fetch('/api/auth/google', {
@@ -64,6 +75,7 @@ export default function Home() {
             body: JSON.stringify({ code })
           })
           if (response.ok) {
+            console.log('Code exchanged for token successfully')
             const { access_token } = await response.json()
             localStorage.setItem('googleToken', access_token)
             window.location.href = '/' // Redirect to remove the code from URL
@@ -73,6 +85,8 @@ export default function Home() {
         } catch (error) {
           console.error('Error handling auth callback:', error)
         }
+      } else {
+        console.log('No code found in URL params')
       }
     }
 
@@ -80,6 +94,7 @@ export default function Home() {
   }, [])
 
   const handleLogout = () => {
+    console.log('Logging out')
     localStorage.removeItem('googleToken')
     setUser(null)
     setIsAuthenticated(false)
