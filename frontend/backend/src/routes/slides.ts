@@ -1,38 +1,57 @@
 import { Hono } from 'hono';
-import { SlidesController } from '../controllers/slidesController';
+import { SheetsController } from '../controllers/sheetsController';
 import { OAuth2Client } from 'google-auth-library';
 
-// Define the environment type
-type Env = {
+type Bindings = {
   auth: OAuth2Client;
 };
 
-const slidesRouter = new Hono<{ Bindings: Env }>();
+type Variables = {
+  auth: OAuth2Client;
+};
 
-slidesRouter.get('/presentations', async (c) => {
-  const controller = new SlidesController(c.env.auth);
-  const presentations = await controller.getPresentations();
-  return c.json(presentations);
-});
+const sheetsRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-slidesRouter.get('/presentations/:id', async (c) => {
-  const controller = new SlidesController(c.env.auth);
-  const { id } = c.req.param();
-  const metadata = await controller.getPresentationMetadata(id);
-  return c.json(metadata);
-});
-
-slidesRouter.get('/presentations/:id/export', async (c) => {
-  const controller = new SlidesController(c.env.auth);
-  const { id } = c.req.param();
-  const pdfBuffer = await controller.exportPresentation(id);
-  if (!pdfBuffer) {
-    return c.json({ error: 'Failed to export presentation' }, 500);
+sheetsRouter.get('/spreadsheets', async (c) => {
+  const auth = c.get('auth');
+  const controller = new SheetsController(auth);
+  try {
+    const spreadsheets = await controller.getSpreadsheets();
+    return c.json(spreadsheets);
+  } catch (error) {
+    console.error('Error fetching spreadsheets:', error);
+    return c.json({ error: 'Failed to fetch spreadsheets' }, 500);
   }
-  return c.body(pdfBuffer as Buffer, 200, {
-    'Content-Type': 'application/pdf',
-    'Content-Disposition': `attachment; filename="presentation-${id}.pdf"`,
-  });
 });
 
-export default slidesRouter;
+sheetsRouter.get('/spreadsheets/:id', async (c) => {
+  const auth = c.get('auth');
+  const controller = new SheetsController(auth);
+  const { id } = c.req.param();
+  try {
+    const metadata = await controller.getSpreadsheetMetadata(id);
+    return c.json(metadata);
+  } catch (error) {
+    console.error(`Error fetching metadata for spreadsheet ${id}:`, error);
+    return c.json({ error: 'Failed to fetch spreadsheet metadata' }, 500);
+  }
+});
+
+sheetsRouter.get('/spreadsheets/:id/values', async (c) => {
+  const auth = c.get('auth');
+  const controller = new SheetsController(auth);
+  const { id } = c.req.param();
+  const range = c.req.query('range');
+  if (!range) {
+    return c.json({ error: 'Range parameter is required' }, 400);
+  }
+  try {
+    const values = await controller.getSpreadsheetValues(id, range);
+    return c.json(values);
+  } catch (error) {
+    console.error(`Error fetching values for spreadsheet ${id}:`, error);
+    return c.json({ error: 'Failed to fetch spreadsheet values' }, 500);
+  }
+});
+
+export default sheetsRouter;

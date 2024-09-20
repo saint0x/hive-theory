@@ -46,7 +46,6 @@ const nextConfig = {
   },
   poweredByHeader: false,
   experimental: {
-    serverActions: true,
     externalDir: true,
   },
 };

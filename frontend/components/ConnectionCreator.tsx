@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import DocumentPicker from './DocumentPicker'
-import SelectedDocumentDisplay from './SelectedDocumentDisplay'
 
 const ConnectionCreator: React.FC = () => {
   const [sheetId, setSheetId] = useState<string | null>(null)
@@ -49,24 +49,36 @@ const ConnectionCreator: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="flex space-x-4">
-        <DocumentPicker
-          documentType="sheets"
-          onSelect={(id, name) => {
-            setSheetId(id)
-            setSheetName(name)
-          }}
-        />
-        <DocumentPicker
-          documentType="slides"
-          onSelect={(id, name) => {
-            setSlideId(id)
-            setSlideName(name)
-          }}
-        />
-      </div>
-      <div className="flex space-x-4">
-        <SelectedDocumentDisplay documentType="sheets" documentId={sheetId} documentName={sheetName} />
-        <SelectedDocumentDisplay documentType="slides" documentId={slideId} documentName={slideName} />
+        <Card className="flex-1">
+          <CardHeader>
+            <CardTitle>Google Sheet</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DocumentPicker
+              documentType="sheets"
+              onSelect={(id, name) => {
+                setSheetId(id)
+                setSheetName(name)
+              }}
+            />
+            {sheetName && <p className="mt-2">Selected: {sheetName}</p>}
+          </CardContent>
+        </Card>
+        <Card className="flex-1">
+          <CardHeader>
+            <CardTitle>Google Slides</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DocumentPicker
+              documentType="slides"
+              onSelect={(id, name) => {
+                setSlideId(id)
+                setSlideName(name)
+              }}
+            />
+            {slideName && <p className="mt-2">Selected: {slideName}</p>}
+          </CardContent>
+        </Card>
       </div>
       <Button
         onClick={handleCreateConnection}

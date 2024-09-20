@@ -2,24 +2,23 @@ import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface SelectedDocumentDisplayProps {
-  documentType: 'sheets' | 'slides'
-  documentId: string | null
-  documentName: string | null
+  documentType: 'sheets' | 'slides';
+  documentId: string | null;
+  documentName: string | null;
 }
 
 const SelectedDocumentDisplay: React.FC<SelectedDocumentDisplayProps> = ({ documentType, documentId, documentName }) => {
-  if (!documentId || !documentName) {
-    return null
-  }
-
   return (
-    <Card>
+    <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle>{documentType === 'sheets' ? 'Selected Google Sheet' : 'Selected Google Slides'}</CardTitle>
+        <CardTitle>Selected {documentType === 'sheets' ? 'Google Sheet' : 'Google Slides'}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="font-medium">{documentName}</p>
-        <p className="text-sm text-gray-500">ID: {documentId}</p>
+        {documentId && documentName ? (
+          <p>{documentName} (ID: {documentId})</p>
+        ) : (
+          <p>No {documentType === 'sheets' ? 'sheet' : 'slides'} selected</p>
+        )}
       </CardContent>
     </Card>
   )

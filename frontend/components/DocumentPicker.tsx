@@ -1,147 +1,119 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { GoogleAuthResult, GooglePickerResponse, GoogleUser } from '@/types/google'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Search, File, Loader2 } from 'lucide-react'
+import Image from 'next/image'
 
-interface SelectedDocument {
+interface File {
   id: string;
   name: string;
+  mimeType: string;
+  thumbnailLink?: string;
 }
 
-export default function DocumentPicker() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
-  const [user, setUser] = useState<GoogleUser | null>(null)
-  const [selectedDocument, setSelectedDocument] = useState<SelectedDocument | null>(null)
+interface DocumentPickerProps {
+  documentType: 'sheets' | 'slides';
+  onSelect: (id: string, name: string) => void;
+}
+
+const DocumentPicker: React.FC<DocumentPickerProps> = ({ documentType, onSelect }) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const [files, setFiles] = useState<File[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+
+  const mimeType = documentType === 'sheets' 
+    ? 'application/vnd.google-apps.spreadsheet'
+    : 'application/vnd.google-apps.presentation'
+
+  const fetchFiles = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/drive/list?mimeType=${encodeURIComponent(mimeType)}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch files')
+      }
+      const data = await response.json()
+      setFiles(data)
+    } catch (error) {
+      console.error('Error fetching files:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [mimeType])
 
   useEffect(() => {
-    const loadGoogleApi = () => {
-      const script = document.createElement('script')
-      script.src = 'https://apis.google.com/js/api.js'
-      script.onload = initializeGoogleAuth
-      document.body.appendChild(script)
-
-      return () => {
-        document.body.removeChild(script)
-      }
+    if (isOpen) {
+      fetchFiles()
     }
+  }, [isOpen, fetchFiles])
 
-    loadGoogleApi()
-  }, [])
-
-  const initializeGoogleAuth = () => {
-    window.gapi.load('auth2', () => {
-      window.gapi.auth2.init({
-        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
-        scope: 'https://www.googleapis.com/auth/drive.file'
-      }).then(() => {
-        const authInstance = window.gapi.auth2.getAuthInstance()
-        handleAuthChange(authInstance.isSignedIn.get())
-        authInstance.isSignedIn.listen(handleAuthChange)
-      }).catch((error: Error) => {
-        console.error('Error initializing Google Auth:', error)
-      })
-    })
+  const handleSelect = (file: File) => {
+    onSelect(file.id, file.name)
+    setIsOpen(false)
   }
 
-  const handleAuthChange = (isSignedIn: boolean) => {
-    setIsAuthenticated(isSignedIn)
-    if (isSignedIn) {
-      const googleUser = window.gapi.auth2.getAuthInstance().currentUser.get()
-      setUser(googleUser)
-    } else {
-      setUser(null)
-    }
-  }
-
-  const handleLogin = () => {
-    window.gapi.auth2.getAuthInstance().signIn().then((googleUser: GoogleUser) => {
-      setUser(googleUser)
-      setIsAuthenticated(true)
-    }).catch((error: Error) => {
-      console.error('Error signing in:', error)
-    })
-  }
-
-  const handleLogout = () => {
-    window.gapi.auth2.getAuthInstance().signOut().then(() => {
-      setUser(null)
-      setIsAuthenticated(false)
-      setSelectedDocument(null)
-    }).catch((error: Error) => {
-      console.error('Error signing out:', error)
-    })
-  }
-
-  const loadPicker = () => {
-    window.gapi.load('picker', () => {
-      window.gapi.auth.authorize(
-        {
-          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
-          scope: 'https://www.googleapis.com/auth/drive.file',
-          immediate: false
-        },
-        handleAuthResult
-      )
-    })
-  }
-
-  const handleAuthResult = (authResult: GoogleAuthResult) => {
-    if (authResult && !authResult.error) {
-      createPicker(authResult.access_token)
-    }
-  }
-
-  const createPicker = (oauthToken: string) => {
-    const picker = new window.google.picker.PickerBuilder()
-      .addView(window.google.picker.ViewId.SPREADSHEETS)
-      .addView(window.google.picker.ViewId.PRESENTATIONS)
-      .setOAuthToken(oauthToken)
-      .setDeveloperKey(process.env.NEXT_PUBLIC_GOOGLE_DEVELOPER_KEY!)
-      .setCallback(pickerCallback)
-      .build()
-    picker.setVisible(true)
-  }
-
-  const pickerCallback = (data: GooglePickerResponse) => {
-    if (data.action === window.google.picker.Action.PICKED) {
-      const document = data.docs[0]
-      setSelectedDocument({
-        id: document.id,
-        name: document.name
-      })
-    }
-  }
+  const filteredFiles = files.filter(file => 
+    file.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Google Document Picker</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {!isAuthenticated ? (
-          <Button onClick={handleLogin} className="w-full">
-            Log in with Google
-          </Button>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <p>Welcome, {user?.getBasicProfile().getName()}</p>
-              <Button onClick={handleLogout} variant="outline">Log out</Button>
-            </div>
-            <Button onClick={loadPicker} className="w-full">
-              Select a Document
-            </Button>
-            {selectedDocument && (
-              <div className="mt-4 p-4 bg-muted rounded-md">
-                <h3 className="font-semibold">Selected Document:</h3>
-                <p>{selectedDocument.name}</p>
+    <>
+      <Button onClick={() => setIsOpen(true)}>
+        Select {documentType === 'sheets' ? 'Spreadsheet' : 'Presentation'}
+      </Button>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="sm:max-w-[625px]">
+          <DialogHeader>
+            <DialogTitle>Select a {documentType === 'sheets' ? 'Google Sheet' : 'Google Slides'}</DialogTitle>
+            <DialogDescription>
+              Choose a file from your Google Drive
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center space-x-2 mb-4">
+            <Search className="w-4 h-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search files..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-grow"
+            />
+          </div>
+          <ScrollArea className="h-[300px] rounded-md border p-4">
+            {isLoading ? (
+              <div className="flex justify-center items-center h-full">
+                <Loader2 className="w-6 h-6 animate-spin" />
+              </div>
+            ) : filteredFiles.length > 0 ? (
+              filteredFiles.map((file) => (
+                <div
+                  key={file.id}
+                  className="flex items-center space-x-4 p-2 hover:bg-gray-100 cursor-pointer rounded"
+                  onClick={() => handleSelect(file)}
+                >
+                  {file.thumbnailLink ? (
+                    <Image src={file.thumbnailLink} alt={file.name} width={40} height={40} className="object-cover rounded" />
+                  ) : (
+                    <File className="w-10 h-10 text-blue-500" />
+                  )}
+                  <span className="flex-grow">{file.name}</span>
+                </div>
+              ))
+            ) : (
+              <div className="flex justify-center items-center h-full">
+                <p>No files found</p>
               </div>
             )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
+
+export default DocumentPicker

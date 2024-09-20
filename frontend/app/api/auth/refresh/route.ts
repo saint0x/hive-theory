@@ -4,7 +4,8 @@ import { OAuth2Client } from 'google-auth-library';
 
 const client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
 );
 
 export async function POST(request: NextRequest) {
@@ -28,13 +29,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Token has expired, refresh it
-    const { credentials } = await client.refreshToken(user.refresh_token);
+    client.setCredentials({
+      refresh_token: user.refresh_token
+    });
+
+    const { credentials } = await client.refreshAccessToken();
 
     // Update the database with the new tokens
     await db.run(
       'UPDATE users SET access_token = ?, token_expiry = ? WHERE id = ?',
       credentials.access_token,
-      Date.now() + credentials.expiry_time! * 1000,
+      Date.now() + (credentials.expiry_date || 3600) * 1000,
       userId
     );
 
