@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { getGoogleTokens, getUserInfo } from '@/lib/google-auth'
+import { getGoogleTokens, getUserInfo } from '../lib/google-auth'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { code } = req.query

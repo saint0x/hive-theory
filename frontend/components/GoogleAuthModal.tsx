@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
-import { getAuthUrl } from '@/lib/google-auth'
+import { checkGoogleConnection } from '@/app/api/google/check-connection/client'
 
 interface GoogleAuthModalProps {
   onSuccess: () => void;
@@ -14,15 +14,39 @@ interface GoogleAuthModalProps {
 const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ onSuccess }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
+  const [isConnected, setIsConnected] = useState<boolean>(false)
 
-  const handleGoogleLogin = () => {
+  useEffect(() => {
+    const checkConnection = async () => {
+      const connected = await checkGoogleConnection();
+      setIsConnected(connected);
+      if (connected) {
+        onSuccess();
+      }
+    };
+    checkConnection();
+  }, [onSuccess]);
+
+  const handleGoogleLogin = async () => {
     try {
-      const authUrl = getAuthUrl()
-      window.location.href = authUrl
+      const response = await fetch('/api/auth/google/url');
+      if (!response.ok) {
+        throw new Error('Failed to fetch Google auth URL');
+      }
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No URL returned from server');
+      }
     } catch (error) {
-      console.error('Error initiating Google login:', error)
-      setError('Failed to initiate Google login. Please try again.')
+      console.error('Error initiating Google login:', error);
+      setError('Failed to initiate Google login. Please try again.');
     }
+  }
+
+  if (isConnected) {
+    return null;
   }
 
   return (
