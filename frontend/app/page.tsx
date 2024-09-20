@@ -18,84 +18,58 @@ export default function Home() {
   const [user, setUser] = useState<UserProfile | null>(null)
 
   useEffect(() => {
-    console.log('Home component mounted')
-    console.log('NEXT_PUBLIC_GOOGLE_CLIENT_ID:', process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
-    console.log('NEXT_PUBLIC_GOOGLE_REDIRECT_URI:', process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI)
-
     const checkAuthStatus = async () => {
-      console.log('Checking auth status')
-      const token = localStorage.getItem('googleToken')
-      if (token) {
-        console.log('Token found in localStorage')
+      const sessionToken = localStorage.getItem('sessionToken')
+      if (sessionToken) {
         try {
-          const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          })
-          if (response.ok) {
-            console.log('User info fetched successfully')
-            const data = await response.json()
-            setUser({
-              id: data.sub,
-              name: data.name,
-              email: data.email,
-              imageUrl: data.picture
-            })
+          // Decode the session token (in a real app, you'd verify the token's signature)
+          const tokenData = JSON.parse(atob(sessionToken))
+          
+          if (tokenData.exp * 1000 > Date.now()) {
+            // Token is still valid
             setIsAuthenticated(true)
+            setUser({
+              id: tokenData.userId,
+              name: tokenData.name || '',
+              email: tokenData.email,
+              imageUrl: '' // You might want to store this in the token or fetch it separately
+            })
           } else {
-            console.log('Token is invalid or expired')
-            localStorage.removeItem('googleToken')
+            // Token has expired, try to refresh
+            const refreshResponse = await fetch('/api/auth/refresh', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ userId: tokenData.userId }),
+            })
+            
+            if (refreshResponse.ok) {
+              const { token } = await refreshResponse.json()
+              localStorage.setItem('sessionToken', token)
+              setIsAuthenticated(true)
+              // You might want to update user info here
+            } else {
+              // Refresh failed, clear the token
+              localStorage.removeItem('sessionToken')
+              setIsAuthenticated(false)
+              setUser(null)
+            }
           }
         } catch (error) {
           console.error('Error checking auth status:', error)
+          localStorage.removeItem('sessionToken')
+          setIsAuthenticated(false)
+          setUser(null)
         }
-      } else {
-        console.log('No token found in localStorage')
       }
     }
 
     checkAuthStatus()
   }, [])
 
-  useEffect(() => {
-    const handleAuthCallback = async () => {
-      console.log('Handling auth callback')
-      const urlParams = new URLSearchParams(window.location.search)
-      const code = urlParams.get('code')
-      if (code) {
-        console.log('Code found in URL params')
-        try {
-          // Exchange code for token (this should be done on your backend)
-          const response = await fetch('/api/auth/google', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ code })
-          })
-          if (response.ok) {
-            console.log('Code exchanged for token successfully')
-            const { access_token } = await response.json()
-            localStorage.setItem('googleToken', access_token)
-            window.location.href = '/' // Redirect to remove the code from URL
-          } else {
-            console.error('Error exchanging code for token')
-          }
-        } catch (error) {
-          console.error('Error handling auth callback:', error)
-        }
-      } else {
-        console.log('No code found in URL params')
-      }
-    }
-
-    handleAuthCallback()
-  }, [])
-
   const handleLogout = () => {
-    console.log('Logging out')
-    localStorage.removeItem('googleToken')
+    localStorage.removeItem('sessionToken')
     setUser(null)
     setIsAuthenticated(false)
   }

@@ -1,54 +1,59 @@
+'use client'
+
 import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle } from "lucide-react"
 
-interface GoogleAuthModalProps {}
-
-const GoogleAuthModal: React.FC<GoogleAuthModalProps> = () => {
+const GoogleAuthModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    console.log('NEXT_PUBLIC_GOOGLE_CLIENT_ID:', process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
-    console.log('NEXT_PUBLIC_GOOGLE_REDIRECT_URI:', process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI)
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data.type === 'GOOGLE_SIGN_IN_SUCCESS') {
+        handleSignInSuccess(event.data.code);
+      }
+    };
 
-    if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
-      setError('Missing NEXT_PUBLIC_GOOGLE_CLIENT_ID. Please check your environment variables.')
-    } else if (!process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI) {
-      setError('Missing NEXT_PUBLIC_GOOGLE_REDIRECT_URI. Please check your environment variables.')
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  const handleGoogleLogin = async () => {
+    try {
+      const response = await fetch('/api/auth/google/url');
+      const data = await response.json();
+      if (data.url) {
+        window.open(data.url, 'Google Sign-In', 'width=500,height=600');
+      }
+    } catch (error) {
+      console.error('Failed to get Google Auth URL:', error);
     }
-  }, [])
-
-  const handleGoogleLogin = () => {
-    console.log('handleGoogleLogin called')
-    if (error) {
-      console.log('Error present, not proceeding with login')
-      return
-    }
-
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
-    const redirectUri = encodeURIComponent(process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI || '')
-    const scope = encodeURIComponent('https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email')
-    const responseType = 'code'
-    const accessType = 'offline'
-    const prompt = 'consent'
-
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&scope=${scope}&access_type=${accessType}&prompt=${prompt}`
-
-    console.log('Auth URL:', authUrl)
-    window.location.href = authUrl
   }
 
-  const openModal = () => {
-    console.log('Opening modal')
-    setIsOpen(true)
+  const handleSignInSuccess = async (code: string) => {
+    try {
+      const response = await fetch('/api/auth/google/callback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code }),
+      });
+      const data = await response.json();
+      if (data.token) {
+        localStorage.setItem('sessionToken', data.token);
+        setIsOpen(false);
+        window.location.reload(); // Reload the page to update auth state
+      }
+    } catch (error) {
+      console.error('Failed to complete Google Sign-In:', error);
+    }
   }
 
   return (
     <>
-      <Button onClick={openModal}>Connect Google Account</Button>
+      <Button onClick={() => setIsOpen(true)}>Connect Google Account</Button>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -58,14 +63,7 @@ const GoogleAuthModal: React.FC<GoogleAuthModalProps> = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center space-y-4 py-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            <Button onClick={handleGoogleLogin} className="w-full" disabled={!!error}>
+            <Button onClick={handleGoogleLogin} className="w-full">
               Sign in with Google
             </Button>
           </div>
