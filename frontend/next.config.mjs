@@ -8,6 +8,7 @@ const nextConfig = {
     GOOGLE_CLIENT_ID: '1027395944679-gpv1ct5ncvmucji8hh0i8hkgbg91ti6s.apps.googleusercontent.com',
     GOOGLE_CLIENT_SECRET: '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',
     GOOGLE_REDIRECT_URI: 'http://localhost:3000/api/auth/callback/google',
+    JWT_SECRET: 'your-secret-key-here', // Replace with a strong, unique secret
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {

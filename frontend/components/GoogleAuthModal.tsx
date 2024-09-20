@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
-import { checkGoogleConnection } from '@/app/api/google/check-connection/client'
 
 interface GoogleAuthModalProps {
   onSuccess: () => void;
@@ -14,17 +13,25 @@ interface GoogleAuthModalProps {
 const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ onSuccess }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
-  const [isConnected, setIsConnected] = useState<boolean>(false)
 
   useEffect(() => {
-    const checkConnection = async () => {
-      const connected = await checkGoogleConnection();
-      setIsConnected(connected);
-      if (connected) {
-        onSuccess();
+    const checkAuthStatus = async () => {
+      try {
+        const response = await fetch('/api/auth/check', {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.authenticated) {
+            onSuccess();
+          }
+        }
+      } catch (error) {
+        console.error('Error checking auth status:', error);
       }
     };
-    checkConnection();
+
+    checkAuthStatus();
   }, [onSuccess]);
 
   const handleGoogleLogin = async () => {
@@ -45,14 +52,15 @@ const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ onSuccess }) => {
     }
   }
 
-  if (isConnected) {
-    return null;
+  const closeModal = () => {
+    setIsOpen(false);
+    setError(null);
   }
 
   return (
     <>
       <Button onClick={() => setIsOpen(true)}>Connect Google Account</Button>
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Dialog open={isOpen} onOpenChange={closeModal}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Connect your Google Account</DialogTitle>

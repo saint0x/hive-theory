@@ -1,7 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server';
 import app from '../../../backend/src/index';
+import { getGoogleTokens, getUserInfo } from '../../../backend/src/api/auth/lib/google-auth';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 export async function GET(request: NextRequest) {
+  const url = new URL(request.url);
+  const path = url.pathname;
+
+  console.log('Incoming request path:', path);
+
+  if (path === '/api/auth/callback/google') {
+    const code = url.searchParams.get('code');
+    if (!code) {
+      console.log('No code provided in Google callback');
+      return NextResponse.redirect('/error?message=No code provided');
+    }
+
+    try {
+      console.log('Exchanging code for tokens');
+      const tokens = await getGoogleTokens(code);
+      console.log('Fetching user info');
+      const userInfo = await getUserInfo(tokens.access_token!);
+
+      // Create a JWT token
+      const token = jwt.sign(
+        { 
+          userId: userInfo.id, 
+          email: userInfo.email,
+          name: userInfo.name
+        },
+        JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+
+      console.log('Redirecting to /');
+      const response = NextResponse.redirect(new URL('/', request.url));
+
+      // Set JWT token as an HTTP-only cookie
+      response.cookies.set('auth_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 3600 // 1 hour
+      });
+
+      return response;
+    } catch (error) {
+      console.error('Error exchanging code for tokens:', error);
+      return NextResponse.redirect('/error?message=Failed to authenticate with Google');
+    }
+  }
+
+  // For all other routes, use the existing handleRequest function
   return handleRequest(request);
 }
 
