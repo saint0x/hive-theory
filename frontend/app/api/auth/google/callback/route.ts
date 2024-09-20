@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     
     // Here you would typically store the tokens securely, e.g., in a database
     // For this example, we'll just set them in a secure, HTTP-only cookie
-    const response = NextResponse.redirect('/dashboard')
+    const response = NextResponse.redirect('/')
     response.cookies.set('google_access_token', tokens.access_token!, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

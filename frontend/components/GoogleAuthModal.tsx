@@ -1,53 +1,30 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircle } from "lucide-react"
 
 const GoogleAuthModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState<boolean>(false)
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      if (event.data.type === 'GOOGLE_SIGN_IN_SUCCESS') {
-        handleSignInSuccess(event.data.code);
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
+  const [error, setError] = useState<string | null>(null)
 
   const handleGoogleLogin = async () => {
     try {
-      const response = await fetch('/api/auth/google/url');
-      const data = await response.json();
+      const response = await fetch('/api/auth/google/url')
+      if (!response.ok) {
+        throw new Error('Failed to fetch Google auth URL')
+      }
+      const data = await response.json()
       if (data.url) {
-        window.open(data.url, 'Google Sign-In', 'width=500,height=600');
+        window.location.href = data.url
+      } else {
+        throw new Error('No URL returned from server')
       }
     } catch (error) {
-      console.error('Failed to get Google Auth URL:', error);
-    }
-  }
-
-  const handleSignInSuccess = async (code: string) => {
-    try {
-      const response = await fetch('/api/auth/google/callback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ code }),
-      });
-      const data = await response.json();
-      if (data.token) {
-        localStorage.setItem('sessionToken', data.token);
-        setIsOpen(false);
-        window.location.reload(); // Reload the page to update auth state
-      }
-    } catch (error) {
-      console.error('Failed to complete Google Sign-In:', error);
+      console.error('Error initiating Google login:', error)
+      setError('Failed to initiate Google login. Please try again.')
     }
   }
 
@@ -63,6 +40,13 @@ const GoogleAuthModal: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center space-y-4 py-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
             <Button onClick={handleGoogleLogin} className="w-full">
               Sign in with Google
             </Button>

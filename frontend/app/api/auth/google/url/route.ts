@@ -1,15 +1,21 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server'
+import { oauth2Client } from '@/lib/google-auth'
 
 export async function GET() {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+  try {
+    const url = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: [
+        'https://www.googleapis.com/auth/drive.file',
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/presentations'
+      ],
+      prompt: 'consent'
+    })
 
-  if (!clientId || !redirectUri) {
-    return NextResponse.json({ error: 'Missing Google OAuth configuration' }, { status: 500 });
+    return NextResponse.json({ url })
+  } catch (error) {
+    console.error('Error generating Google auth URL:', error)
+    return NextResponse.json({ error: 'Failed to generate auth URL' }, { status: 500 })
   }
-
-  const scope = encodeURIComponent('https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email');
-  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
-
-  return NextResponse.json({ url: authUrl });
 }
