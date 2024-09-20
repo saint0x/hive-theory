@@ -5,23 +5,20 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
+import { getAuthUrl } from '@/lib/google-auth'
 
-const GoogleAuthModal: React.FC = () => {
+interface GoogleAuthModalProps {
+  onSuccess: () => void;
+}
+
+const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ onSuccess }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = () => {
     try {
-      const response = await fetch('/api/auth/google/url')
-      if (!response.ok) {
-        throw new Error('Failed to fetch Google auth URL')
-      }
-      const data = await response.json()
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        throw new Error('No URL returned from server')
-      }
+      const authUrl = getAuthUrl()
+      window.location.href = authUrl
     } catch (error) {
       console.error('Error initiating Google login:', error)
       setError('Failed to initiate Google login. Please try again.')

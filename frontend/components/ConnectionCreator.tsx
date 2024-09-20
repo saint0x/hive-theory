@@ -1,11 +1,13 @@
-'use client'
-
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import DocumentPicker from './DocumentPicker'
 
-const ConnectionCreator: React.FC = () => {
+interface ConnectionCreatorProps {
+  onConnectionCreated?: () => void;
+}
+
+const ConnectionCreator: React.FC<ConnectionCreatorProps> = ({ onConnectionCreated }) => {
   const [sheetId, setSheetId] = useState<string | null>(null)
   const [sheetName, setSheetName] = useState<string | null>(null)
   const [slideId, setSlideId] = useState<string | null>(null)
@@ -40,6 +42,10 @@ const ConnectionCreator: React.FC = () => {
       setSheetName(null)
       setSlideId(null)
       setSlideName(null)
+
+      if (onConnectionCreated) {
+        onConnectionCreated()
+      }
     } catch (error) {
       console.error('Error creating connection:', error)
       alert('Failed to create connection. Please try again.')

@@ -3,11 +3,11 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   env: {
-    NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-    NEXT_PUBLIC_GOOGLE_REDIRECT_URI: process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI,
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-    GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI,
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID: '1027395944679-bp1m9vhjv99fg15ar5vf34r622vrooql.apps.googleusercontent.com',
+    NEXT_PUBLIC_GOOGLE_REDIRECT_URI: 'http://localhost:3000/api/auth/callback/google',
+    GOOGLE_CLIENT_ID: '1027395944679-gpv1ct5ncvmucji8hh0i8hkgbg91ti6s.apps.googleusercontent.com',
+    GOOGLE_CLIENT_SECRET: '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',
+    GOOGLE_REDIRECT_URI: 'http://localhost:3000/api/auth/callback/google',
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {
@@ -16,6 +16,14 @@ const nextConfig = {
         fs: false,
         net: false,
         tls: false,
+        child_process: false,
+        http2: false,
+        http: false,
+        https: false,
+        zlib: false,
+        path: false,
+        stream: false,
+        crypto: false,
       };
     }
     return config;
@@ -45,9 +53,6 @@ const nextConfig = {
     ];
   },
   poweredByHeader: false,
-  experimental: {
-    externalDir: true,
-  },
 };
 
 export default nextConfig;
