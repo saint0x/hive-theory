@@ -34,3 +34,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/workspaces/hive-theory/frontend/start.js
+/workspaces/hive-theory/frontend/startup.log

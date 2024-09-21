@@ -44,15 +44,39 @@ function spawnProcess(command, args, processName, successMessage) {
       }
     });
 
-    // Timeout if process doesn't start within 60 seconds
+    // Timeout if process doesn't start within 120 seconds (increased from 60)
     setTimeout(() => {
-      reject(new Error(`${processName} startup timed out after 60 seconds\nOutput: ${output}`));
-    }, 60000);
+      reject(new Error(`${processName} startup timed out after 120 seconds\nOutput: ${output}`));
+    }, 120000);
   });
 }
 
 function startBackendServer() {
-  return spawnProcess('npx', ['ts-node', 'backend/src/index.js'], 'Backend', 'Backend server is running');
+  return new Promise((resolve) => {
+    function spawnBackend() {
+      const backend = spawn('npx', ['ts-node', 'backend/src/index.js']);
+
+      backend.stdout.on('data', (data) => {
+        console.log(`Backend: ${data}`);
+        if (data.includes('Backend server is running')) {
+          log('Backend server started successfully', '✅');
+          resolve(backend);
+        }
+      });
+
+      backend.stderr.on('data', (data) => {
+        console.error(`Backend Error: ${data}`);
+      });
+
+      backend.on('exit', (code, signal) => {
+        log(`Backend exited with code ${code} and signal ${signal}`, '💥');
+        log('Restarting backend server...', '🔄');
+        spawnBackend();
+      });
+    }
+
+    spawnBackend();
+  });
 }
 
 function checkServerHealth(retries = 3, delay = 5000) {
@@ -87,7 +111,25 @@ function checkServerHealth(retries = 3, delay = 5000) {
 }
 
 function startNextJsApp() {
-  return spawnProcess('npm', ['run', 'dev'], 'Next.js', 'ready');
+  return new Promise((resolve) => {
+    const nextApp = spawn('npm', ['run', 'dev']);
+    
+    nextApp.stdout.on('data', (data) => {
+      console.log(`Next.js: ${data}`);
+      if (data.includes('ready')) {
+        log('Next.js app started successfully', '✅');
+        resolve(nextApp);
+      }
+    });
+
+    nextApp.stderr.on('data', (data) => {
+      console.error(`Next.js Error: ${data}`);
+    });
+
+    nextApp.on('error', (error) => {
+      log(`Failed to start Next.js app: ${error}`, '❌');
+    });
+  });
 }
 
 async function startup() {
@@ -96,7 +138,12 @@ async function startup() {
   try {
     backendServer = await startBackendServer();
     await checkServerHealth();
-    nextApp = await startNextJsApp();
+
+    // Start Next.js app without waiting for it to be ready
+    nextApp = startNextJsApp();
+    
+    // Keep the script running
+    process.stdin.resume();
 
     process.on('SIGINT', () => {
       log('Received SIGINT. Shutting down...', '🛑');
