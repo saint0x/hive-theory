@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import ConnectionCreator from '@/components/ConnectionCreator'
 import ConnectionList from '@/components/ConnectionList'
 import GoogleAuthModal from '@/components/GoogleAuthModal'
+import { AlertCircle } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface UserProfile {
   id: string;
@@ -12,16 +14,17 @@ interface UserProfile {
   email: string;
 }
 
-export default function Home() {
+export default function Component() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
   const [user, setUser] = useState<UserProfile | null>(null)
   const [currentPage, setCurrentPage] = useState<'welcome' | 'create' | 'list'>('welcome')
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
         const response = await fetch('/api/auth/check', {
-          credentials: 'include' // This is important to include cookies
+          credentials: 'include'
         });
         if (response.ok) {
           const data = await response.json();
@@ -35,6 +38,7 @@ export default function Home() {
         }
       } catch (error) {
         console.error('Error checking auth status:', error);
+        setError('Failed to check authentication status. Please try again.');
         setIsAuthenticated(false);
         setUser(null);
         setCurrentPage('welcome');
@@ -46,15 +50,20 @@ export default function Home() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', {
+      const response = await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include'
       });
-      setUser(null);
-      setIsAuthenticated(false);
-      setCurrentPage('welcome');
+      if (response.ok) {
+        setUser(null);
+        setIsAuthenticated(false);
+        setCurrentPage('welcome');
+      } else {
+        throw new Error('Logout failed');
+      }
     } catch (error) {
       console.error('Error logging out:', error);
+      setError('Failed to log out. Please try again.');
     }
   }
 
@@ -79,16 +88,23 @@ export default function Home() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-4">Hive Theory</h1>
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       {isAuthenticated && user && (
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <p>Welcome, {user.name}</p>
-            <p>{user.email}</p>
+        <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+          <div className="mb-4 sm:mb-0">
+            <p className="font-semibold">Welcome, {user.name}</p>
+            <p className="text-sm text-gray-600">{user.email}</p>
           </div>
-          <div className="space-x-4">
+          <div className="space-y-2 sm:space-y-0 sm:space-x-4 flex flex-col sm:flex-row">
             <Button onClick={() => setCurrentPage('create')}>Create Connection</Button>
             <Button onClick={() => setCurrentPage('list')}>View Connections</Button>
-            <Button onClick={handleLogout}>Log out</Button>
+            <Button onClick={handleLogout} variant="outline">Log out</Button>
           </div>
         </div>
       )}

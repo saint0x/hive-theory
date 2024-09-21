@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import app from '../../../../backend/src/index';
-import { Env } from 'hono';
+import appImport from '../../../../backend/src/index';
+import { Hono } from 'hono';
+
+// Type assertion for the imported app
+const app = appImport as unknown as Hono;
 
 export async function GET(request: NextRequest) {
   return handleRequest(request);
@@ -23,7 +26,7 @@ async function handleRequest(request: NextRequest) {
   const path = url.pathname.replace('/api', '');
   const method = request.method.toLowerCase();
 
-  const honoEnv: Env = {
+  const honoEnv = {
     Variables: {
       auth: {} // Initialize this properly based on your auth requirements
     }
