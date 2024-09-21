@@ -1,13 +1,12 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { google } from 'googleapis';
+const { google } = require('googleapis');
 
 const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI
+  '123456789-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com',
+  'GOCSPX-abcdefghijklmnopqrstuvwxyz',
+  'http://localhost:3000/api/auth/callback/google'
 );
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
@@ -21,4 +20,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('Error exchanging code for tokens:', error);
     res.status(500).json({ message: 'Failed to exchange code for tokens' });
   }
-}
+};

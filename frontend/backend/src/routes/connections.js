@@ -1,32 +1,11 @@
-import { Hono } from 'hono';
-import { OAuth2Client } from 'google-auth-library';
-import * as connectionsApi from '../api/connections';
+const { Hono } = require('hono');
+const connectionsApi = require('../api/connections');
 
-type Bindings = {
-  auth: OAuth2Client;
-};
-
-type Variables = {
-  auth: OAuth2Client;
-};
-
-interface ConnectionRequest {
-  sheetId: string;
-  slideId: string;
-  sheetRange: string;
-  slidePageId: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  isImage: boolean;
-}
-
-const connectionsRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+const connectionsRouter = new Hono();
 
 connectionsRouter.post('/connections', async (c) => {
   const auth = c.get('auth');
-  const body = await c.req.json() as ConnectionRequest;
+  const body = await c.req.json();
 
   try {
     const connection = await connectionsApi.createConnection(
@@ -71,4 +50,4 @@ connectionsRouter.post('/sync', async (c) => {
   }
 });
 
-export default connectionsRouter;
+module.exports = connectionsRouter;

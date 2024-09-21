@@ -1,24 +1,27 @@
-import * as driveApi from '../api/drive';
-import { OAuth2Client } from 'google-auth-library';
+const driveApi = require('../api/drive');
 
-export class SlidesController {
-  constructor(private auth: OAuth2Client) {}
+class SlidesController {
+  constructor(auth) {
+    this.auth = auth;
+  }
 
   async getPresentations() {
     return driveApi.listFiles(this.auth, 'application/vnd.google-apps.presentation');
   }
 
-  async getPresentationMetadata(fileId: string) {
+  async getPresentationMetadata(fileId) {
     return driveApi.getFileMetadata(this.auth, fileId);
   }
 
-  async exportPresentation(fileId: string): Promise<Buffer | null> {
+  async exportPresentation(fileId) {
     try {
       const pdfBuffer = await driveApi.exportSlides(this.auth, fileId);
-      return Buffer.from(pdfBuffer as ArrayBuffer);
+      return Buffer.from(pdfBuffer);
     } catch (error) {
       console.error('Error exporting presentation:', error);
       return null;
     }
   }
 }
+
+module.exports = SlidesController;

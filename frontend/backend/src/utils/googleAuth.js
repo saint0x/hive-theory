@@ -1,5 +1,5 @@
-import { google } from 'googleapis';
-import { OAuth2Client } from 'google-auth-library';
+const { google } = require('googleapis');
+const { OAuth2Client } = require('google-auth-library');
 
 const GOOGLE_CLIENT_ID = '1027395944679-gpv1ct5ncvmucji8hh0i8hkgbg91ti6s.apps.googleusercontent.com';
 const GOOGLE_CLIENT_SECRET = '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';
@@ -9,17 +9,17 @@ if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI) {
   throw new Error('Missing required Google OAuth environment variables');
 }
 
-export const oauth2Client = new google.auth.OAuth2(
+const oauth2Client = new google.auth.OAuth2(
   GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET,
   GOOGLE_REDIRECT_URI
 );
 
-export async function getAuthClient(): Promise<OAuth2Client> {
+async function getAuthClient() {
   return oauth2Client;
 }
 
-export function getAuthUrl(): string {
+function getAuthUrl() {
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: [
@@ -32,21 +32,30 @@ export function getAuthUrl(): string {
   });
 }
 
-export async function getTokens(code: string) {
+async function getTokens(code) {
   const { tokens } = await oauth2Client.getToken(code);
   oauth2Client.setCredentials(tokens);
   return tokens;
 }
 
-export async function getUserInfo(accessToken: string) {
+async function getUserInfo(accessToken) {
   const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
   oauth2Client.setCredentials({ access_token: accessToken });
   const { data } = await oauth2.userinfo.get();
   return data;
 }
 
-export async function refreshAccessToken(refreshToken: string) {
+async function refreshAccessToken(refreshToken) {
   oauth2Client.setCredentials({ refresh_token: refreshToken });
   const { credentials } = await oauth2Client.refreshAccessToken();
   return credentials;
 }
+
+module.exports = {
+  oauth2Client,
+  getAuthClient,
+  getAuthUrl,
+  getTokens,
+  getUserInfo,
+  refreshAccessToken
+};

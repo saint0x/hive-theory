@@ -2,13 +2,12 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "Backend for Hive Theory project",
-  "main": "src/index.ts",
-  "type": "module",
+  "main": "src/index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts",
-    "build": "tsc",
-    "test": "node script.mjs"
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "build": "echo 'No build step required for JavaScript'",
+    "test": "node script.js"
   },
   "dependencies": {
     "@hono/node-server": "^1.12.2",
@@ -20,9 +19,7 @@
     "axios": "^1.3.4"
   },
   "devDependencies": {
-    "@types/node": "^20.11.17",
-    "tsx": "^4.7.1",
-    "typescript": "^5.0.2"
+    "nodemon": "^2.0.22"
   },
   "engines": {
     "node": ">=18.0.0"

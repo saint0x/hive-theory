@@ -1,6 +1,4 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+module.exports = async function handler(req, res) {
   if (req.method === 'POST') {
     const { code } = req.body;
 
@@ -17,9 +15,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
         body: new URLSearchParams({
           code,
-          client_id: process.env.GOOGLE_CLIENT_ID!,
-          client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-          redirect_uri: process.env.GOOGLE_REDIRECT_URI!,
+          client_id: '123456789-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com',
+          client_secret: 'GOCSPX-abcdefghijklmnopqrstuvwxyz',
+          redirect_uri: 'http://localhost:3000/api/auth/callback/google',
           grant_type: 'authorization_code',
         }),
       });
@@ -47,4 +45,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader('Allow', ['POST']);
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
-}
+};

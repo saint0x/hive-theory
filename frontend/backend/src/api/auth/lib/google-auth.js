@@ -1,21 +1,21 @@
-import { google } from 'googleapis';
-import { OAuth2Client } from 'google-auth-library';
+const { google } = require('googleapis');
+const { OAuth2Client } = require('google-auth-library');
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
+const GOOGLE_CLIENT_ID = '123456789-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com';
+const GOOGLE_CLIENT_SECRET = 'GOCSPX-abcdefghijklmnopqrstuvwxyz';
+const GOOGLE_REDIRECT_URI = 'http://localhost:3000/api/auth/callback/google';
 
 if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI) {
   throw new Error('Missing required Google OAuth environment variables');
 }
 
-export const oauth2Client = new google.auth.OAuth2(
+const oauth2Client = new google.auth.OAuth2(
   GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET,
   GOOGLE_REDIRECT_URI
 );
 
-export function getAuthUrl(): string {
+function getAuthUrl() {
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: [
@@ -29,7 +29,7 @@ export function getAuthUrl(): string {
   });
 }
 
-export async function getGoogleTokens(code: string): Promise<any> {
+async function getGoogleTokens(code) {
   try {
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
@@ -40,7 +40,7 @@ export async function getGoogleTokens(code: string): Promise<any> {
   }
 }
 
-export async function getUserInfo(accessToken: string): Promise<any> {
+async function getUserInfo(accessToken) {
   try {
     oauth2Client.setCredentials({ access_token: accessToken });
     const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
@@ -52,7 +52,7 @@ export async function getUserInfo(accessToken: string): Promise<any> {
   }
 }
 
-export async function refreshAccessToken(refreshToken: string): Promise<any> {
+async function refreshAccessToken(refreshToken) {
   try {
     oauth2Client.setCredentials({ refresh_token: refreshToken });
     const { credentials } = await oauth2Client.refreshAccessToken();
@@ -62,3 +62,11 @@ export async function refreshAccessToken(refreshToken: string): Promise<any> {
     throw error;
   }
 }
+
+module.exports = {
+  oauth2Client,
+  getAuthUrl,
+  getGoogleTokens,
+  getUserInfo,
+  refreshAccessToken
+};

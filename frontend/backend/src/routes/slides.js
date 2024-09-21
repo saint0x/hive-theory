@@ -1,16 +1,7 @@
-import { Hono } from 'hono';
-import { SheetsController } from '../controllers/sheetsController';
-import { OAuth2Client } from 'google-auth-library';
+const { Hono } = require('hono');
+const { SheetsController } = require('../controllers/sheetsController');
 
-type Bindings = {
-  auth: OAuth2Client;
-};
-
-type Variables = {
-  auth: OAuth2Client;
-};
-
-const sheetsRouter = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+const sheetsRouter = new Hono();
 
 sheetsRouter.get('/spreadsheets', async (c) => {
   const auth = c.get('auth');
@@ -54,4 +45,4 @@ sheetsRouter.get('/spreadsheets/:id/values', async (c) => {
   }
 });
 
-export default sheetsRouter;
+module.exports = sheetsRouter;

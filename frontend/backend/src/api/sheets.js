@@ -1,18 +1,10 @@
-import { google, drive_v3 } from 'googleapis';
-import { OAuth2Client } from 'google-auth-library';
+const { google } = require('googleapis');
+const { OAuth2Client } = require('google-auth-library');
 
 const sheets = google.sheets({ version: 'v4' });
 const drive = google.drive({ version: 'v3' });
 
-interface SpreadsheetData {
-  id: string;
-  name: string;
-  createdTime: string;
-  modifiedTime: string;
-  thumbnailLink?: string;
-}
-
-export async function getAllSpreadsheets(auth: OAuth2Client): Promise<SpreadsheetData[]> {
+async function getAllSpreadsheets(auth) {
   try {
     const response = await drive.files.list({
       auth,
@@ -21,14 +13,14 @@ export async function getAllSpreadsheets(auth: OAuth2Client): Promise<Spreadshee
       orderBy: 'modifiedTime desc',
     });
 
-    return response.data.files as SpreadsheetData[] || [];
+    return response.data.files || [];
   } catch (error) {
     console.error('Error fetching spreadsheets:', error);
     throw new Error('Failed to fetch spreadsheets');
   }
 }
 
-export async function getSpreadsheetValues(auth: OAuth2Client, spreadsheetId: string, range: string): Promise<any[][]> {
+async function getSpreadsheetValues(auth, spreadsheetId, range) {
   try {
     const response = await sheets.spreadsheets.values.get({
       auth,
@@ -42,23 +34,21 @@ export async function getSpreadsheetValues(auth: OAuth2Client, spreadsheetId: st
   }
 }
 
-export async function batchGetSpreadsheetValues(auth: OAuth2Client, spreadsheetId: string, ranges: string[]): Promise<any[][][]> {
+async function batchGetSpreadsheetValues(auth, spreadsheetId, ranges) {
   try {
     const response = await sheets.spreadsheets.values.batchGet({
       auth,
       spreadsheetId,
       ranges,
     });
-    return response.data.valueRanges?.map(range => range.values || []) || [];
+    return (response.data.valueRanges && response.data.valueRanges.map(range => range.values || [])) || [];
   } catch (error) {
     console.error('Error fetching batch spreadsheet values:', error);
     throw new Error('Failed to fetch batch spreadsheet values');
   }
 }
 
-type WatchResponse = drive_v3.Schema$Channel;
-
-export async function watchSheet(auth: OAuth2Client, fileId: string, webhookUrl: string): Promise<WatchResponse> {
+async function watchSheet(auth, fileId, webhookUrl) {
   try {
     const response = await drive.files.watch({
       auth,
@@ -81,3 +71,10 @@ export async function watchSheet(auth: OAuth2Client, fileId: string, webhookUrl:
     throw new Error('Failed to set up sheet watch');
   }
 }
+
+module.exports = {
+  getAllSpreadsheets,
+  getSpreadsheetValues,
+  batchGetSpreadsheetValues,
+  watchSheet
+};

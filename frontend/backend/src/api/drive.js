@@ -1,10 +1,10 @@
-import { google } from 'googleapis';
-import { OAuth2Client } from 'google-auth-library';
+const { google } = require('googleapis');
+const { OAuth2Client } = require('google-auth-library');
 
 const drive = google.drive({ version: 'v3' });
 const sheets = google.sheets({ version: 'v4' });
 
-export async function listFiles(auth: OAuth2Client, mimeType: string) {
+async function listFiles(auth, mimeType) {
   const res = await drive.files.list({
     auth,
     q: `mimeType='${mimeType}'`,
@@ -13,7 +13,7 @@ export async function listFiles(auth: OAuth2Client, mimeType: string) {
   return res.data.files || [];
 }
 
-export async function getFileMetadata(auth: OAuth2Client, fileId: string) {
+async function getFileMetadata(auth, fileId) {
   const res = await drive.files.get({
     auth,
     fileId,
@@ -22,7 +22,7 @@ export async function getFileMetadata(auth: OAuth2Client, fileId: string) {
   return res.data;
 }
 
-export async function downloadSheet(auth: OAuth2Client, fileId: string, range: string) {
+async function downloadSheet(auth, fileId, range) {
   const res = await sheets.spreadsheets.values.get({
     auth,
     spreadsheetId: fileId,
@@ -31,11 +31,18 @@ export async function downloadSheet(auth: OAuth2Client, fileId: string, range: s
   return res.data.values || [];
 }
 
-export async function exportSlides(auth: OAuth2Client, fileId: string): Promise<ArrayBuffer> {
+async function exportSlides(auth, fileId) {
   const res = await drive.files.export({
     auth,
     fileId,
     mimeType: 'application/pdf',
   }, { responseType: 'arraybuffer' });
-  return res.data as ArrayBuffer;
+  return res.data;
 }
+
+module.exports = {
+  listFiles,
+  getFileMetadata,
+  downloadSheet,
+  exportSlides
+};

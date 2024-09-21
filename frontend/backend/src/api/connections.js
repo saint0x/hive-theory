@@ -1,36 +1,27 @@
-import { OAuth2Client } from 'google-auth-library';
-import * as sheetsApi from './sheets';
-import * as slidesApi from './slides';
-
-interface Connection {
-  id: string;
-  sheetId: string;
-  slideId: string;
-  sheetRange: string;
-  slideElementId: string;
-  isImage: boolean;
-}
+const { OAuth2Client } = require('google-auth-library');
+const sheetsApi = require('./sheets');
+const slidesApi = require('./slides');
 
 // This would typically be stored in a database
-let connections: Connection[] = [];
+let connections = [];
 
-export async function createConnection(
-  auth: OAuth2Client,
-  sheetId: string,
-  slideId: string,
-  sheetRange: string,
-  slidePageId: string,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  isImage: boolean
-): Promise<Connection> {
+async function createConnection(
+  auth,
+  sheetId,
+  slideId,
+  sheetRange,
+  slidePageId,
+  x,
+  y,
+  width,
+  height,
+  isImage
+) {
   try {
     const placeholderType = isImage ? 'IMAGE' : 'TEXT';
     const slideElementId = await slidesApi.createPlaceholder(auth, slideId, slidePageId, placeholderType, x, y, width, height);
 
-    const connection: Connection = {
+    const connection = {
       id: `connection_${Date.now()}`,
       sheetId,
       slideId,
@@ -51,7 +42,7 @@ export async function createConnection(
   }
 }
 
-export async function syncConnection(auth: OAuth2Client, connection: Connection): Promise<void> {
+async function syncConnection(auth, connection) {
   try {
     const sheetValues = await sheetsApi.getSpreadsheetValues(auth, connection.sheetId, connection.sheetRange);
     const content = sheetValues[0][0]; // Assuming single cell
@@ -68,12 +59,19 @@ export async function syncConnection(auth: OAuth2Client, connection: Connection)
   }
 }
 
-export async function syncAllConnections(auth: OAuth2Client): Promise<void> {
+async function syncAllConnections(auth) {
   for (const connection of connections) {
     await syncConnection(auth, connection);
   }
 }
 
-export function getConnections(): Connection[] {
+function getConnections() {
   return connections;
 }
+
+module.exports = {
+  createConnection,
+  syncConnection,
+  syncAllConnections,
+  getConnections
+};

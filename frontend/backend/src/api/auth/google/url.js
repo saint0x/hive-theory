@@ -1,7 +1,6 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { getAuthUrl } from '../../../utils/googleAuth';
+const { getAuthUrl } = require('../../../utils/googleAuth');
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+module.exports = function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const authUrl = getAuthUrl();
@@ -14,4 +13,4 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     res.setHeader('Allow', ['GET']);
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
-}
+};

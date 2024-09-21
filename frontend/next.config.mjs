@@ -8,7 +8,8 @@ const nextConfig = {
     GOOGLE_CLIENT_ID: '1027395944679-gpv1ct5ncvmucji8hh0i8hkgbg91ti6s.apps.googleusercontent.com',
     GOOGLE_CLIENT_SECRET: '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',
     GOOGLE_REDIRECT_URI: 'http://localhost:3000/api/auth/callback/google',
-    JWT_SECRET: 'your-secret-key-here', // Replace with a strong, unique secret
+    JWT_SECRET: '5110d42e300f3caaea65b99dd53871b906d60ff8282550979da8ff392e6e8d4ab665b1138e8c7ebd9b7f4da05665e8fb202c2144c7edab6666b685bd613c1c5a',
+    BACKEND_PORT: '3001',
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {
@@ -54,6 +55,14 @@ const nextConfig = {
     ];
   },
   poweredByHeader: false,
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://localhost:3001/api/:path*',
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -1,21 +1,12 @@
-import { Hono } from 'hono';
-import { OAuth2Client } from 'google-auth-library';
-import sheetsRouter from './routes/sheets';
-import slidesRouter from './routes/slides';
-import connectionsRouter from './routes/connections';
-import { oauth2Client } from './config/auth';
+const { serve } = require('@hono/node-server');
+const { Hono } = require('hono');
+const sheetsRouter = require('./routes/sheets');
+const slidesRouter = require('./routes/slides');
+const connectionsRouter = require('./routes/connections');
+const { oauth2Client } = require('./config/auth');
 
-// Define the environment type
-type Bindings = {
-  auth: OAuth2Client;
-};
-
-type Variables = {
-  auth: OAuth2Client;
-};
-
-// Create a Hono app with the Bindings type and Variables
-const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+// Create a Hono app
+const app = new Hono();
 
 // Middleware to add auth to the context
 app.use('*', async (c, next) => {
@@ -46,4 +37,11 @@ app.notFound((c) => {
   return c.json({ error: 'Not Found' }, 404);
 });
 
-export default app;
+// Start the server
+const port = 3001; // Hardcoded port number
+console.log(`Backend server is running on http://localhost:${port}`);
+
+serve({
+  fetch: app.fetch,
+  port: port
+});

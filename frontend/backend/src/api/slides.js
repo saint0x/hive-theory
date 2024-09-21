@@ -1,49 +1,38 @@
-import { google, slides_v1 } from 'googleapis';
-import { OAuth2Client } from 'google-auth-library';
+const { google } = require('googleapis');
+const { OAuth2Client } = require('google-auth-library');
 
 const slides = google.slides({ version: 'v1' });
 
-interface Presentation {
-  presentationId: string;
-  title: string;
-  slides: Array<{
-    objectId: string;
-    title?: string;
-  }>;
-}
-
-type UpdateResponse = slides_v1.Schema$BatchUpdatePresentationResponse;
-
-export async function getPresentation(auth: OAuth2Client, presentationId: string): Promise<Presentation> {
+async function getPresentation(auth, presentationId) {
   try {
     const response = await slides.presentations.get({
       auth,
       presentationId,
     });
-    return response.data as Presentation;
+    return response.data;
   } catch (error) {
     console.error('Error fetching presentation:', error);
     throw new Error('Failed to fetch presentation');
   }
 }
 
-export async function updateSlideContent(
-  auth: OAuth2Client,
-  presentationId: string,
-  pageObjectId: string,
-  elementId: string,
-  content: string | { url: string },
-  isImage: boolean
-): Promise<UpdateResponse> {
+async function updateSlideContent(
+  auth,
+  presentationId,
+  pageObjectId,
+  elementId,
+  content,
+  isImage
+) {
   try {
-    const requests: slides_v1.Schema$Request[] = [];
+    const requests = [];
 
     if (isImage) {
       requests.push({
         replaceImage: {
           imageObjectId: elementId,
           imageReplaceMethod: 'CENTER_INSIDE',
-          url: (content as { url: string }).url,
+          url: content.url,
         },
       });
     } else {
@@ -51,7 +40,7 @@ export async function updateSlideContent(
         insertText: {
           objectId: elementId,
           insertionIndex: 0,
-          text: content as string,
+          text: content,
         },
       }, {
         deleteText: {
@@ -78,18 +67,18 @@ export async function updateSlideContent(
   }
 }
 
-export async function createPlaceholder(
-  auth: OAuth2Client,
-  presentationId: string,
-  pageObjectId: string,
-  placeholderType: 'TEXT' | 'IMAGE',
-  x: number,
-  y: number,
-  width: number,
-  height: number
-): Promise<string> {
+async function createPlaceholder(
+  auth,
+  presentationId,
+  pageObjectId,
+  placeholderType,
+  x,
+  y,
+  width,
+  height
+) {
   try {
-    const requests: slides_v1.Schema$Request[] = [{
+    const requests = [{
       createShape: {
         objectId: `placeholder_${Date.now()}`,
         shapeType: 'RECTANGLE',
@@ -128,10 +117,16 @@ export async function createPlaceholder(
       },
     });
 
-    const createShapeReply = response.data.replies?.find(reply => reply.createShape);
-    return createShapeReply?.createShape?.objectId || '';
+    const createShapeReply = response.data.replies && response.data.replies.find(reply => reply.createShape);
+    return createShapeReply && createShapeReply.createShape && createShapeReply.createShape.objectId || '';
   } catch (error) {
     console.error('Error creating placeholder:', error);
     throw new Error('Failed to create placeholder');
   }
 }
+
+module.exports = {
+  getPresentation,
+  updateSlideContent,
+  createPlaceholder
+};
